@@ -1,35 +1,64 @@
 # -*- coding: utf-8 -*-
 
-num = 3
-cur = []
-curr = [0]
-curbit = 0
-line = 0
+num = 8
+curr = 0
+vert = 0
+ldiag = 0
+rdiag = 0
+row = 0
 pos = 0
 count = 0
 
 while (True):
-    if pos == num and line == 0:
+    
+    if pos == num and row == 0: # BREAK
         break
-    if line == num: # success
-        print bin(curbit), cur
+    
+    if row == num: # success
+        print "ans", count, ":", str(oct(curr))[1:]
+        pos = curr & 7
+        curr = curr >> 3
+
+        row -= 1
+        vert = vert & (~(1 << pos))
+        ldiag = ldiag & (~(1 << (7 - row + pos)))
+        rdiag = rdiag & (~(1 << (row + pos)))
+        pos += 1
         count += 1
-        line -= 1
-        pos = cur[line] # last pos
-        curbit = curbit & (~(1 << pos))
+        continue
+
+    if pos == num and row != 0: # POP
+        pos = curr & 7
+        curr = curr >> 3
+        
+        row -= 1
+        vert = vert & (~(1 << pos))
+        ldiag = ldiag & (~(1 << (7 - row + pos)))
+        rdiag = rdiag & (~(1 << (row + pos)))
         pos += 1
         continue
-    if pos == num and line != 0:
-        line -= 1
-        pos = cur[line]
-        curbit = curbit & (~(1 << pos))
+
+    # PUSH
+    # Check the correctness of this move.
+    t_vert = 1 << pos
+    t_ldiag = 1 << (7 - row + pos)
+    t_rdiag = 1 << (row + pos)
+    
+    fail = vert & t_vert
+    fail = fail | (ldiag & t_ldiag)
+    fail = fail | (rdiag & t_rdiag)
+    
+    if fail == 0:
+        curr = curr << 3
+        curr = curr | pos
+        
+        vert = vert | t_vert
+        ldiag = ldiag | t_ldiag
+        rdiag = rdiag | t_rdiag
+        pos = 0
+        row += 1
+        
+    else:
         pos += 1
-        continue
     
-    cur[line] = pos
-    curbit = curbit | (1 << pos)
-    pos = 0
-    line += 1
-    
-print count
-print 1 << 2
+print "There are", count, "answers"
