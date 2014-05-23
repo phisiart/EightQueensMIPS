@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Eight Queens with MIPS Assembly Language by phisiart</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/phisiart/EightQueensMIPS">View On GitHub</a></li>
+          <li class="downloads"><a href="https://github.com/phisiart/EightQueensMIPS/zipball/master">ZIP</a></li>
+          <li class="downloads"><a href="https://github.com/phisiart/EightQueensMIPS/tarball/master">TAR</a></li>
+          <li class="title">DOWNLOADS</li>
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>Eight Queens with MIPS Assembly Language</h1>
+          <p></p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/phisiart">phisiart</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+        </div>
+
+        <h2>
+<a name="eight-queens-on-mips" class="anchor" href="#eight-queens-on-mips"><span class="octicon octicon-link"></span></a>Eight Queens on MIPS</h2>
+
+<blockquote>
+<p>Zhixun TAN <br>
+EE 25 <br>
+2012011120</p>
+</blockquote>
+
+<p>The basic idea is putting the queens one row after another. First, we know that any two queens can't be in the same row, which indicates that for any row (0 to 7), there can only be exactly one queen.</p>
+
+<p>For each row, there are 8 positions (namely columns) where we can put the queen. So we may use a number between 0 to 7 to denote the position of the queen in each row. There are 8 rows in all, meaning that we need 8 numbers. Each number requires 3 bits, so 8 numbers require 24 bits in all, which can be stored in one single <code>word</code>.</p>
+
+<p>How do we check that not any two queens are in the same column? This requires us to track the previous moves before make the new move. In other words, suppose we are about to put a queen in row 3, col 4, we must first make sure that there are no previous queens in col 4. Thus, we use an 8-bit bitset to denote which columns have been 'used'.</p>
+
+<p>For example, before any queen is put, the bitset is <code>00000000</code>. We put a queen in row 0, col 1, then the bitset becomes <code>01000000</code>. Then we put a queen in row 1, col 3, the bitset becomes <code>01010000</code>. Then we put a queen in row 2, col 1, but wait! -- from the bitset we know that col 1 has been occupied, so we can't do that.</p>
+
+<p>The situation is similar when it comes to diagonals. There are 14 left diagonals:</p>
+
+<pre><code> 7  8  9 10 11 12 13 14
+ 6  7  8  9 10 11 12 13
+ 5  6  7  8  9 10 11 12
+ 4  5  6  7  8  9 10 11
+ 3  4  5  6  7  8  9 10
+ 2  3  4  5  6  7  8  9
+ 1  2  3  4  5  6  7  8
+ 0  1  2  3  4  5  6  7
+</code></pre>
+
+<p>There are also 14 right diagonals.</p>
+
+<h3>
+<a name="python-version-of-eight-queens" class="anchor" href="#python-version-of-eight-queens"><span class="octicon octicon-link"></span></a>Python version of Eight Queens:</h3>
+
+<p>Here we give the python version of the algorithm above.</p>
+
+<pre><code>num = 8
+curr = 0
+vert = 0
+ldiag = 0
+rdiag = 0
+row = 0
+pos = 0
+count = 0
+
+while (True):
+    if pos == num and row == 0: # BREAK
+        break
+
+    if row == num: # success
+        print oct(curr)
+        pos = curr &amp; 7
+        curr = curr &gt;&gt; 3
+
+        row -= 1
+        vert = vert &amp; (~(1 &lt;&lt; pos))
+        ldiag = ldiag &amp; (~(1 &lt;&lt; (7 - row + pos)))
+        rdiag = rdiag &amp; (~(1 &lt;&lt; (row + pos)))
+        pos += 1
+        count += 1
+        continue
+
+    if pos == num and row != 0: # POP
+        pos = curr &amp; 7
+        curr = curr &gt;&gt; 3
+
+        row -= 1
+        vert = vert &amp; (~(1 &lt;&lt; pos))
+        ldiag = ldiag &amp; (~(1 &lt;&lt; (7 - row + pos)))
+        rdiag = rdiag &amp; (~(1 &lt;&lt; (row + pos)))
+        pos += 1
+        continue
+
+    # PUSH
+    # Check the correctness of this move.
+    t_vert = 1 &lt;&lt; pos
+    t_ldiag = 1 &lt;&lt; (7 - row + pos)
+    t_rdiag = 1 &lt;&lt; (row + pos)
+
+    fail = vert &amp; t_vert
+    fail = fail | (ldiag &amp; t_ldiag)
+    fail = fail | (rdiag &amp; t_rdiag)
+
+    if fail == 0:
+        curr = curr &lt;&lt; 3
+        curr = curr | pos
+
+        vert = vert | t_vert
+        ldiag = ldiag | t_ldiag
+        rdiag = rdiag | t_rdiag
+        pos = 0
+        row += 1
+
+    else:
+        pos += 1
+
+print count
+</code></pre>
+
+<h3>
+<a name="result" class="anchor" href="#result"><span class="octicon octicon-link"></span></a>RESULT</h3>
+
+<p></p>
+<img src="http://www.phisiart.com/pics/spim.png" alt="">
+      </section>
+
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
